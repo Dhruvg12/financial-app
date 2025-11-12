@@ -22,8 +22,20 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 @app.get("/api/stock/{symbol}")
-def get_stock(symbol: str, user: dict = Depends(get_current_user)):
-    data = yf.download(symbol, period="6mo", interval="1d", auto_adjust=True)
+def get_stock(symbol: str, period: str = "6mo", interval: str = "1d", user: dict = Depends(get_current_user)):
+    """Return OHLCV data for a symbol.
+
+    Query params:
+    - period: yfinance period string (e.g. '1mo','3mo','6mo','1y','max')
+    - interval: '1d' or '1wk'
+    """
+    # Validate interval to avoid unexpected values
+    if interval not in ("1d", "1wk"):
+        raise HTTPException(status_code=400, detail="Invalid interval; allowed: 1d, 1wk")
+    try:
+        data = yf.download(symbol, period=period, interval=interval, auto_adjust=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching data: {e}")
     data.reset_index(inplace=True)
     
     # Flatten MultiIndex columns if present and clean up column names

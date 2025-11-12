@@ -7,6 +7,8 @@ export default function Dashboard({ user, setUser }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [period, setPeriod] = useState("6mo");
+  const [interval, setInterval] = useState("1d");
 
   async function fetchData() {
     setLoading(true);
@@ -14,6 +16,7 @@ export default function Dashboard({ user, setUser }) {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(`http://127.0.0.1:8000/api/stock/${symbol}`, {
+        params: { period, interval },
         headers: {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
@@ -65,6 +68,20 @@ export default function Dashboard({ user, setUser }) {
               className="px-3 py-2 rounded-lg text-black w-36"
               placeholder="Ticker"
             />
+
+            <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 rounded-lg bg-white/90 text-black">
+              <option value="1mo">1M</option>
+              <option value="3mo">3M</option>
+              <option value="6mo">6M</option>
+              <option value="1y">1Y</option>
+              <option value="max">Max</option>
+            </select>
+
+            <select value={interval} onChange={e => setInterval(e.target.value)} className="px-3 py-2 rounded-lg bg-white/90 text-black">
+              <option value="1d">Daily</option>
+              <option value="1wk">Weekly</option>
+            </select>
+
             <button onClick={fetchData} className="bg-gradient-to-r from-blue-500 to-purple-600 px-4 py-2 rounded-lg shadow hover:brightness-110">Fetch</button>
             <button onClick={logout} className="text-sm text-gray-300 hover:text-white">Logout</button>
           </div>
