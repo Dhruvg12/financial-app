@@ -5,6 +5,18 @@ import axios from "axios";
 export default function Dashboard({ user, setUser }) {
   const [view, setView] = useState("hub"); // 'hub' | 'chart' | 'invest'
   const [symbol, setSymbol] = useState("AAPL");
+  // Options calculator state
+  const [assetPrice, setAssetPrice] = useState(167.37);
+  const [strikePrice, setStrikePrice] = useState(175);
+  const [todayDate, setTodayDate] = useState(new Date().toISOString().slice(0,10));
+  const [maturityDate, setMaturityDate] = useState(() => {
+    const d = new Date(); d.setMonth(d.getMonth()+2); return d.toISOString().slice(0,10);
+  });
+  const [interestRate, setInterestRate] = useState(0.0025);
+  const [volatility, setVolatility] = useState(0.283);
+  const [payoutRate, setPayoutRate] = useState(0.0);
+  const [timeToMaturityText, setTimeToMaturityText] = useState(0);
+  const [optionResult, setOptionResult] = useState(null);
   const [data, setData] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -65,6 +77,94 @@ export default function Dashboard({ user, setUser }) {
     } finally {
       setInvestLoading(false);
     }
+  }
+
+  // ---------- Options pricing helpers ----------
+  function normPdf(x) {
+    return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+  }
+
+  // Cumulative normal distribution (approximation)
+  function normCdf(x) {
+    // Abramowitz and Stegun approximation
+    const sign = x < 0 ? -1 : 1;
+    const absX = Math.abs(x) / Math.sqrt(2);
+    const t = 1 / (1 + 0.3275911 * absX);
+    const a1 = 0.254829592;
+    const a2 = -0.284496736;
+    const a3 = 1.421413741;
+    const a4 = -1.453152027;
+    const a5 = 1.061405429;
+    const erf = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+    return 0.5 * (1 + sign * erf);
+  }
+
+  function yearsBetween(startIso, endIso) {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    const msPerYear = 1000 * 60 * 60 * 24 * 365.25;
+    return Math.max(0, (end - start) / msPerYear);
+  }
+
+  function calculateOptions() {
+    const S = Number(assetPrice);
+    const K = Number(strikePrice);
+    const r = Number(interestRate);
+    const q = Number(payoutRate);
+    const sigma = Number(volatility);
+    const T = yearsBetween(todayDate, maturityDate);
+    setTimeToMaturityText(T.toFixed(4) + ' Years');
+
+    if (T <= 0 || S <= 0 || K <= 0 || sigma <= 0) {
+      setOptionResult(null);
+      return;
+    }
+
+    const sqrtT = Math.sqrt(T);
+    const d1 = (Math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+    const d2 = d1 - sigma * sqrtT;
+
+    const Nd1 = normCdf(d1);
+    const Nd2 = normCdf(d2);
+    const Nnegd1 = normCdf(-d1);
+    const Nnegd2 = normCdf(-d2);
+
+    const call = S * Math.exp(-q * T) * Nd1 - K * Math.exp(-r * T) * Nd2;
+    const put = K * Math.exp(-r * T) * Nnegd2 - S * Math.exp(-q * T) * Nnegd1;
+
+    const deltaCall = Math.exp(-q * T) * Nd1;
+    const deltaPut = Math.exp(-q * T) * (Nd1 - 1);
+    const gamma = Math.exp(-q * T) * normPdf(d1) / (S * sigma * sqrtT);
+    const vega = S * Math.exp(-q * T) * normPdf(d1) * sqrtT;
+    // Theta (per year)
+    const thetaCall = (-S * normPdf(d1) * sigma * Math.exp(-q * T) / (2 * sqrtT)) - r * K * Math.exp(-r * T) * Nd2 + q * S * Math.exp(-q * T) * Nd1;
+    const thetaPut = (-S * normPdf(d1) * sigma * Math.exp(-q * T) / (2 * sqrtT)) + r * K * Math.exp(-r * T) * Nnegd2 - q * S * Math.exp(-q * T) * Nnegd1;
+
+    setOptionResult({
+      call: call,
+      put: put,
+      deltaCall,
+      deltaPut,
+      gamma,
+      vega,
+      thetaCall,
+      thetaPut,
+      series: (() => {
+        // Payoff at maturity over a range
+        const min = Math.max(0, S * 0.6);
+        const max = S * 1.6;
+        const step = (max - min) / 60;
+        const xs = [];
+        const callPay = [];
+        const putPay = [];
+        for (let x = min; x <= max; x += step) {
+          xs.push(Number(x.toFixed(2)));
+          callPay.push(Math.max(0, x - K));
+          putPay.push(Math.max(0, K - x));
+        }
+        return { xs, callPay, putPay };
+      })(),
+    });
   }
 
   // Removed automatic fetch on symbol change so data loads only when user clicks Fetch.
@@ -148,6 +248,7 @@ export default function Dashboard({ user, setUser }) {
           <div className="flex flex-col md:flex-row items-center justify-center gap-8 py-12">
             <button onClick={() => setView('chart')} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-lg font-semibold shadow-lg">Open Chart</button>
             <button onClick={() => setView('invest')} className="px-8 py-4 bg-green-600 hover:bg-green-700 rounded-lg text-lg font-semibold shadow-lg">Open Simulator</button>
+            <button onClick={() => setView('options')} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-lg font-semibold shadow-lg">Option Pricing</button>
           </div>
         )}
 
@@ -293,6 +394,106 @@ export default function Dashboard({ user, setUser }) {
                           </div>
                         </div>
                       )}
+          </div>
+        )}
+
+        {/* Options pricing view */}
+        {view === 'options' && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Option Pricing Calculator</h2>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setView('hub')} className="px-3 py-1 bg-white/10 rounded">Back to Tools</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-6 bg-white/5 rounded-lg border border-white/10">
+                <h3 className="text-lg font-semibold mb-4">Inputs</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm text-gray-300">Asset Price</label>
+                    <input type="number" value={assetPrice} onChange={e => setAssetPrice(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-300">Strike Price</label>
+                    <input type="number" value={strikePrice} onChange={e => setStrikePrice(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="text-sm text-gray-300">Today's Date</label>
+                      <input type="date" value={todayDate} onChange={e => setTodayDate(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-sm text-gray-300">Option Maturity</label>
+                      <input type="date" value={maturityDate} onChange={e => setMaturityDate(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-300">Interest rate (decimal)</label>
+                    <input type="number" step="0.0001" value={interestRate} onChange={e => setInterestRate(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-300">Volatility (decimal)</label>
+                    <input type="number" step="0.001" value={volatility} onChange={e => setVolatility(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-300">Payout rate (decimal)</label>
+                    <input type="number" step="0.0001" value={payoutRate} onChange={e => setPayoutRate(e.target.value)} className="w-full px-3 py-2 rounded mt-1 text-black" />
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-3">
+                    <button onClick={calculateOptions} className="px-4 py-2 bg-indigo-600 rounded text-white">Calculate</button>
+                    <div className="text-sm text-gray-300">Time to maturity: {timeToMaturityText}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white/5 rounded-lg border border-white/10">
+                <h3 className="text-lg font-semibold mb-4">Results</h3>
+                {optionResult ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-300">Call option</div>
+                      <div className="text-2xl font-semibold">{optionResult.call.toFixed(3)}</div>
+                      <div className="text-xs text-gray-400">Δ {optionResult.deltaCall.toFixed(4)} • Γ {optionResult.gamma.toFixed(4)} • Vega {optionResult.vega.toFixed(4)} • Θ {optionResult.thetaCall.toFixed(4)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-300">Put option</div>
+                      <div className="text-2xl font-semibold">{optionResult.put.toFixed(3)}</div>
+                      <div className="text-xs text-gray-400">Δ {optionResult.deltaPut.toFixed(4)} • Γ {optionResult.gamma.toFixed(4)} • Vega {optionResult.vega.toFixed(4)} • Θ {optionResult.thetaPut.toFixed(4)}</div>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <Plot
+                        data={[
+                          { x: optionResult.series.xs, y: optionResult.series.callPay, name: 'Call payoff', type: 'scatter', mode: 'lines', line: { color: '#ff6b6b', width: 3 } },
+                          { x: optionResult.series.xs, y: optionResult.series.putPay, name: 'Put payoff', type: 'scatter', mode: 'lines', line: { color: '#60a5fa', width: 3 } },
+                        ]}
+                        layout={{
+                          title: 'Payoff at maturity',
+                          font: { color: '#e6eef8' },
+                          paper_bgcolor: "rgba(0,0,0,0)",
+                          plot_bgcolor: "rgba(0,0,0,0)",
+                          xaxis: { gridcolor: 'rgba(255,255,255,0.08)', zerolinecolor: 'rgba(255,255,255,0.06)', tickcolor: '#e6eef8' },
+                          yaxis: { gridcolor: 'rgba(255,255,255,0.08)', zerolinecolor: 'rgba(255,255,255,0.06)', tickcolor: '#e6eef8' },
+                          legend: { font: { color: '#e6eef8' } },
+                          height: 340,
+                          margin: { t: 40, b: 40, l: 60, r: 20 }
+                        }}
+                        config={{ responsive: true }}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-300">Enter inputs and click Calculate to see option prices and Greeks.</div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
