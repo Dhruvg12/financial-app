@@ -46,6 +46,7 @@ export default function Dashboard({ user, setUser }) {
   }
 
   const [investError, setInvestError] = useState("");
+  const [selectedStat, setSelectedStat] = useState(null);
 
   async function calculateInvestment() {
     setInvestLoading(true);
@@ -194,51 +195,104 @@ export default function Dashboard({ user, setUser }) {
             </div>
 
             {stats && (
-              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-200">
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Market cap</div>
-                  <div className="text-lg font-semibold">{formatLargeNumber(stats.marketCap)}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Price-Earnings ratio</div>
-                  <div className="text-lg font-semibold">{stats.peRatio ?? '—'}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Dividend yield</div>
-                  <div className="text-lg font-semibold">{stats.dividendYield != null ? (stats.dividendYield * 100).toFixed(2) + '%' : '—'}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Average volume</div>
-                  <div className="text-lg font-semibold">{formatLargeNumber(stats.averageVolume)}</div>
-                </div>
+                        <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-200">
+                          {/* Each stat is clickable; clicking sets selectedStat which shows an explanation below */}
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('marketCap')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('marketCap')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Market cap</div>
+                            <div className="text-lg font-semibold">{formatLargeNumber(stats.marketCap)}</div>
+                          </div>
 
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">High today</div>
-                  <div className="text-lg font-semibold">${stats.dayHigh ?? '—'}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Low today</div>
-                  <div className="text-lg font-semibold">${stats.dayLow ?? '—'}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Open price</div>
-                  <div className="text-lg font-semibold">${stats.open ?? '—'}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">Volume</div>
-                  <div className="text-lg font-semibold">{formatLargeNumber(stats.volume)}</div>
-                </div>
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('peRatio')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('peRatio')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Price-Earnings ratio</div>
+                            <div className="text-lg font-semibold">{stats.peRatio ?? '—'}</div>
+                          </div>
 
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">52 Week high</div>
-                  <div className="text-lg font-semibold">${stats['52WeekHigh'] ?? stats.fiftyTwoWeekHigh ?? '—'}</div>
-                </div>
-                <div className="p-3 bg-white/3 rounded">
-                  <div className="text-sm text-gray-300">52 Week low</div>
-                  <div className="text-lg font-semibold">${stats['52WeekLow'] ?? stats.fiftyTwoWeekLow ?? '—'}</div>
-                </div>
-              </div>
-            )}
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('dividendYield')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('dividendYield')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Dividend yield</div>
+                            <div className="text-lg font-semibold">{stats.dividendYield != null ? (stats.dividendYield * 100).toFixed(2) + '%' : '—'}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('averageVolume')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('averageVolume')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Average volume</div>
+                            <div className="text-lg font-semibold">{formatLargeNumber(stats.averageVolume)}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('dayHigh')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('dayHigh')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">High today</div>
+                            <div className="text-lg font-semibold">${stats.dayHigh ?? '—'}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('dayLow')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('dayLow')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Low today</div>
+                            <div className="text-lg font-semibold">${stats.dayLow ?? '—'}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('open')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('open')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Open price</div>
+                            <div className="text-lg font-semibold">${stats.open ?? '—'}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('volume')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('volume')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">Volume</div>
+                            <div className="text-lg font-semibold">{formatLargeNumber(stats.volume)}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('52High')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('52High')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">52 Week high</div>
+                            <div className="text-lg font-semibold">${stats['52WeekHigh'] ?? stats.fiftyTwoWeekHigh ?? '—'}</div>
+                          </div>
+
+                          <div role="button" tabIndex={0} onClick={() => setSelectedStat('52Low')} onKeyDown={(e)=>{if(e.key==='Enter')setSelectedStat('52Low')}} className="p-3 bg-white/3 rounded cursor-pointer hover:bg-white/5">
+                            <div className="text-sm text-gray-300">52 Week low</div>
+                            <div className="text-lg font-semibold">${stats['52WeekLow'] ?? stats.fiftyTwoWeekLow ?? '—'}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Explanation panel shown when a stat is selected */}
+                      {selectedStat && (
+                        <div className="mt-4 p-4 bg-white/4 rounded border border-white/6 text-gray-100">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="text-lg font-semibold mb-1">{(() => {
+                                switch(selectedStat) {
+                                  case 'marketCap': return 'Market cap';
+                                  case 'peRatio': return 'Price-Earnings ratio';
+                                  case 'dividendYield': return 'Dividend yield';
+                                  case 'averageVolume': return 'Average volume';
+                                  case 'dayHigh': return 'High today';
+                                  case 'dayLow': return 'Low today';
+                                  case 'open': return 'Open price';
+                                  case 'volume': return 'Volume';
+                                  case '52High': return '52 Week high';
+                                  case '52Low': return '52 Week low';
+                                  default: return '';
+                                }
+                              })()}</h3>
+                              <p className="text-sm text-gray-200">
+                                {(() => {
+                                  switch(selectedStat) {
+                                    case 'marketCap': return 'Market capitalization is the total market value of a company\'s outstanding shares. It\'s calculated as share price × number of outstanding shares and gives a sense of company size.';
+                                    case 'peRatio': return 'Price-to-Earnings (P/E) ratio compares a company\'s current share price to its per-share earnings. A higher P/E can indicate expectations of higher growth.';
+                                    case 'dividendYield': return 'Dividend yield shows the annual dividend payment as a percentage of the current share price. Useful for income-focused investors.';
+                                    case 'averageVolume': return 'Average volume is the average number of shares traded per day over a period. Higher volume implies more liquidity.';
+                                    case 'dayHigh': return 'High today is the highest price at which the stock has traded during the current trading day.';
+                                    case 'dayLow': return 'Low today is the lowest price at which the stock has traded during the current trading day.';
+                                    case 'open': return 'Open price is the price at which the stock first traded when the market opened for the day.';
+                                    case 'volume': return 'Volume is the number of shares traded during the selected period (typically the current day). It\'s a measure of trading activity.';
+                                    case '52High': return '52-week high is the highest price at which the stock has traded over the last 52 weeks.';
+                                    case '52Low': return '52-week low is the lowest price at which the stock has traded over the last 52 weeks.';
+                                    default: return '';
+                                  }
+                                })()}
+                              </p>
+                            </div>
+                            <div>
+                              <button onClick={() => setSelectedStat(null)} className="ml-4 text-sm text-blue-300 hover:text-blue-200">Close</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
           </div>
         )}
 
