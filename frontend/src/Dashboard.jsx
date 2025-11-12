@@ -6,13 +6,18 @@ export default function Dashboard({ user, setUser }) {
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [chartError, setChartError] = useState("");
   const [period, setPeriod] = useState("6mo");
   const [interval, setInterval] = useState("1d");
+  // Investment simulator state
+  const [investAmount, setInvestAmount] = useState(1000);
+  const [investDate, setInvestDate] = useState("");
+  const [investLoading, setInvestLoading] = useState(false);
+  const [investResult, setInvestResult] = useState(null);
 
   async function fetchData() {
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setChartError("");
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(`http://127.0.0.1:8000/api/stock/${symbol}`, {
@@ -24,10 +29,31 @@ export default function Dashboard({ user, setUser }) {
       setData(res.data || []);
     } catch (err) {
       console.error("Error fetching stock data:", err);
-      setError(err.response?.data?.detail || "Failed to load data");
+      setChartError(err.response?.data?.detail || "Failed to load data");
       setData([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  const [investError, setInvestError] = useState("");
+
+  async function calculateInvestment() {
+    setInvestLoading(true);
+    setInvestResult(null);
+    setInvestError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`http://127.0.0.1:8000/api/investment`, {
+        params: { symbol, amount: investAmount, date: investDate },
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
+      });
+      setInvestResult(res.data);
+    } catch (err) {
+      console.error("Investment calc error:", err);
+      setInvestError(err.response?.data?.detail || "Investment calculation failed");
+    } finally {
+      setInvestLoading(false);
     }
   }
 
@@ -95,9 +121,9 @@ export default function Dashboard({ user, setUser }) {
                 <p className="text-gray-300">Loading chart data... ({data.length} records loaded)</p>
               </div>
             </div>
-          ) : error ? (
+          ) : chartError ? (
             <div className="text-center py-20">
-              <p className="text-red-400 mb-2">{error}</p>
+              <p className="text-red-400 mb-2">{chartError}</p>
               <button onClick={fetchData} className="px-4 py-2 bg-blue-600 rounded">Retry</button>
             </div>
           ) : trace && trace.x && trace.x.length > 0 ? (
@@ -117,6 +143,57 @@ export default function Dashboard({ user, setUser }) {
             />
           ) : (
             <div className="text-center py-20 text-gray-300">No data available. Try a different ticker or click Fetch.</div>
+          )}
+        </div>
+
+        {/* Investment simulator */}
+        <div className="mt-6 bg-white/5 rounded-lg p-4 border border-white/10">
+          <h2 className="text-lg font-semibold mb-3">Investment Simulator</h2>
+          <div className="flex items-center gap-3 mb-3">
+            <input type="number" value={investAmount} onChange={e => setInvestAmount(Number(e.target.value))} className="px-3 py-2 rounded-lg text-black w-36" />
+            <input type="date" value={investDate} onChange={e => setInvestDate(e.target.value)} className="px-3 py-2 rounded-lg bg-white/90 text-black" />
+            <button onClick={calculateInvestment} disabled={investLoading || !investDate} className="px-4 py-2 bg-green-600 rounded-lg">{investLoading ? 'Calculating...' : 'Calculate'}</button>
+          </div>
+
+          {investResult ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-3 bg-white/3 rounded">
+                <div className="text-sm text-gray-300">Purchased</div>
+                <div className="text-xl font-semibold">${investResult.purchase_price}</div>
+                <div className="text-xs text-gray-400">on {investResult.purchase_date}</div>
+              </div>
+              <div className="p-3 bg-white/3 rounded">
+                <div className="text-sm text-gray-300">Shares</div>
+                <div className="text-xl font-semibold">{investResult.shares}</div>
+              </div>
+              <div className="p-3 bg-white/3 rounded">
+                <div className="text-sm text-gray-300">Current Value</div>
+                <div className="text-xl font-semibold">${investResult.value_now}</div>
+                <div className={`text-sm ${investResult.gain_pct >= 0 ? 'text-green-300' : 'text-red-300'}`}>{investResult.gain_pct}%</div>
+              </div>
+
+              <div className="md:col-span-3 mt-4">
+                <Plot
+                  data={[{ x: investResult.series.map(s => s.Date), y: investResult.series.map(s => s.Value), type: 'scatter', mode: 'lines', fill: 'tozeroy', name: 'Portfolio Value' }]}
+                  layout={{
+                    title: `Value of $${investResult.amount} invested in ${investResult.symbol}`,
+                    paper_bgcolor: "rgba(17,24,39,0)",
+                    plot_bgcolor: "rgba(17,24,39,0)",
+                    font: { color: "#e6eef8" },
+                    height: 320,
+                    margin: { t: 50, b: 40 }
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+          ) : investError ? (
+            <div className="text-center py-6">
+              <p className="text-red-400 mb-2">{investError}</p>
+              <button onClick={calculateInvestment} className="px-4 py-2 bg-blue-600 rounded">Retry</button>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-400">Enter an amount and purchase date to see how an investment would have grown.</div>
           )}
         </div>
       </div>

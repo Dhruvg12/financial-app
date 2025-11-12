@@ -119,3 +119,72 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db=Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer", "username": user.username}
+
+
+@app.get("/api/investment")
+def simulate_investment(symbol: str, amount: float, date: str, user: dict = Depends(get_current_user)):
+    """Simulate investing `amount` USD on `date` into `symbol` and return growth series.
+
+    Query params:
+    - symbol: ticker symbol
+    - amount: USD amount invested (float)
+    - date: purchase date in YYYY-MM-DD
+    """
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be > 0")
+    try:
+        start = pd.to_datetime(date)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid date format; use YYYY-MM-DD")
+
+    # Compare dates (use date objects to avoid tz-aware vs tz-naive Timestamp comparison issues)
+    today_date = pd.Timestamp.utcnow().date()
+    if start.date() >= today_date:
+        raise HTTPException(status_code=400, detail="Purchase date must be in the past")
+
+    # Fetch historical daily prices from purchase date to today
+    try:
+        end_date = (pd.Timestamp.utcnow().normalize() + pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+        hist = yf.download(symbol, start=start.strftime('%Y-%m-%d'), end=end_date, interval='1d', auto_adjust=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching historical data: {e}")
+
+    if hist is None or hist.empty:
+        raise HTTPException(status_code=404, detail="No historical data available for given symbol/date")
+
+    # Use first available close price as purchase price
+    # 'Close' column should exist when auto_adjust=True
+    if 'Close' in hist.columns:
+        price_then = float(hist['Close'].iloc[0])
+    else:
+        # fallback try to find any numeric column
+        price_then = float(hist.iloc[0].iloc[-1])
+
+    shares = amount / price_then
+
+    # Prepare series of values over time
+    series = []
+    for idx in hist.index:
+        price = float(hist.loc[idx]['Close']) if 'Close' in hist.columns else float(hist.loc[idx].iloc[-1])
+        series.append({
+            'Date': pd.to_datetime(idx).strftime('%Y-%m-%d'),
+            'Price': price,
+            'Value': round(shares * price, 4),
+        })
+
+    # Current price: use last available price in hist (should be recent) or fetch latest
+    current_price = series[-1]['Price']
+    value_now = round(series[-1]['Value'], 4)
+    gain_pct = round(((value_now - amount) / amount) * 100, 2)
+
+    return {
+        'symbol': symbol,
+        'amount': amount,
+        'purchase_date': pd.to_datetime(hist.index[0]).strftime('%Y-%m-%d'),
+        'purchase_price': round(price_then, 4),
+        'shares': round(shares, 8),
+        'current_price': round(current_price, 4),
+        'value_now': value_now,
+        'gain_pct': gain_pct,
+        'series': series,
+    }
