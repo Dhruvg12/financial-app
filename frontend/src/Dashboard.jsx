@@ -5,6 +5,7 @@ import axios from "axios";
 export default function Dashboard({ user, setUser }) {
   const [symbol, setSymbol] = useState("AAPL");
   const [data, setData] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [chartError, setChartError] = useState("");
   const [period, setPeriod] = useState("6mo");
@@ -26,7 +27,14 @@ export default function Dashboard({ user, setUser }) {
           Authorization: token ? `Bearer ${token}` : undefined,
         },
       });
-      setData(res.data || []);
+      // Backend may return either an array (old) or an object with {series, stats}
+      if (res.data && res.data.series) {
+        setData(res.data.series || []);
+        setStats(res.data.stats || null);
+      } else {
+        setData(res.data || []);
+        setStats(null);
+      }
     } catch (err) {
       console.error("Error fetching stock data:", err);
       setChartError(err.response?.data?.detail || "Failed to load data");
@@ -73,6 +81,21 @@ export default function Dashboard({ user, setUser }) {
     decreasing: { line: { color: '#ef5350' } },
   } : null;
 
+  function formatLargeNumber(n) {
+    if (n == null) return "—";
+    const abs = Math.abs(n);
+    if (abs >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+    if (abs >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (abs >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+    return n.toString();
+  }
+
+  function formatPct(v) {
+    if (v == null) return '—';
+    return (v * 100).toFixed(2) + '%';
+  }
+
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
@@ -113,7 +136,7 @@ export default function Dashboard({ user, setUser }) {
           </div>
         </div>
 
-        <div className="bg-white/3 rounded-lg p-4 border border-white/5" style={{minHeight: 420}}>
+  <div className="bg-white/3 rounded-lg p-4 border border-white/5" style={{minHeight: 420}}>
           {loading ? (
             <div className="flex items-center justify-center h-96">
               <div className="text-center">
@@ -145,6 +168,54 @@ export default function Dashboard({ user, setUser }) {
             <div className="text-center py-20 text-gray-300">No data available. Try a different ticker or click Fetch.</div>
           )}
         </div>
+
+        {/* Stats below chart */}
+        {stats && (
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-gray-200">
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Market cap</div>
+              <div className="text-lg font-semibold">{formatLargeNumber(stats.marketCap)}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Price-Earnings ratio</div>
+              <div className="text-lg font-semibold">{stats.peRatio ?? '—'}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Dividend yield</div>
+              <div className="text-lg font-semibold">{stats.dividendYield != null ? (stats.dividendYield * 100).toFixed(2) + '%' : '—'}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Average volume</div>
+              <div className="text-lg font-semibold">{formatLargeNumber(stats.averageVolume)}</div>
+            </div>
+
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">High today</div>
+              <div className="text-lg font-semibold">${stats.dayHigh ?? '—'}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Low today</div>
+              <div className="text-lg font-semibold">${stats.dayLow ?? '—'}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Open price</div>
+              <div className="text-lg font-semibold">${stats.open ?? '—'}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">Volume</div>
+              <div className="text-lg font-semibold">{formatLargeNumber(stats.volume)}</div>
+            </div>
+
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">52 Week high</div>
+              <div className="text-lg font-semibold">${stats['52WeekHigh'] ?? stats.fiftyTwoWeekHigh ?? '—'}</div>
+            </div>
+            <div className="p-3 bg-white/3 rounded">
+              <div className="text-sm text-gray-300">52 Week low</div>
+              <div className="text-lg font-semibold">${stats['52WeekLow'] ?? stats.fiftyTwoWeekLow ?? '—'}</div>
+            </div>
+          </div>
+        )}
 
         {/* Investment simulator */}
         <div className="mt-6 bg-white/5 rounded-lg p-4 border border-white/10">

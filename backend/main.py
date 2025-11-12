@@ -92,7 +92,28 @@ def get_stock(symbol: str, period: str = "6mo", interval: str = "1d", user: dict
             record[str(col)] = convert_value(val)
         records.append(record)
     
-    return records
+    # Try to gather some summary statistics from yfinance Ticker.info
+    stats = {}
+    try:
+        ticker = yf.Ticker(symbol)
+        info = ticker.info or {}
+        # Map expected fields, fallback to None if missing
+        stats = {
+            'marketCap': info.get('marketCap'),
+            'peRatio': info.get('trailingPE') or info.get('forwardPE'),
+            'dividendYield': info.get('dividendYield'),
+            'averageVolume': info.get('averageVolume') or info.get('averageVolume10days'),
+            'dayHigh': info.get('dayHigh'),
+            'dayLow': info.get('dayLow'),
+            'open': info.get('open'),
+            'volume': info.get('volume'),
+            '52WeekHigh': info.get('fiftyTwoWeekHigh') or info.get('52WeekHigh'),
+            '52WeekLow': info.get('fiftyTwoWeekLow') or info.get('52WeekLow'),
+        }
+    except Exception:
+        stats = {}
+
+    return {"series": records, "stats": stats}
 
 
 # --- Authentication endpoints ---
