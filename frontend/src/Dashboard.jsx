@@ -243,12 +243,76 @@ export default function Dashboard({ user, setUser }) {
           </div>
         </div>
 
-        {/* Intermediary Tool Hub (simple) */}
+        {/* Intermediary Tool Hub with descriptions and icons */}
         {view === 'hub' && (
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 py-12">
-            <button onClick={() => setView('chart')} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-lg font-semibold shadow-lg">Open Chart</button>
-            <button onClick={() => setView('invest')} className="px-8 py-4 bg-green-600 hover:bg-green-700 rounded-lg text-lg font-semibold shadow-lg">Open Simulator</button>
-            <button onClick={() => setView('options')} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-lg font-semibold shadow-lg">Option Pricing</button>
+          <div className="py-12">
+            <div className="max-w-4xl mx-auto text-center mb-8">
+              <h2 className="text-3xl font-bold mb-2">Choose a tool</h2>
+              <p className="text-gray-300">Quickly open one of the tools below. Each card explains what the tool does and how to use it.</p>
+            </div>
+
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Chart Tool Card */}
+              <div className="p-6 bg-white/5 rounded-2xl border border-white/10 shadow-lg hover:shadow-xl transition">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-md">
+                    {/* chart icon */}
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l3-3 4 4 5-7" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold">Chart</h3>
+                    <p className="text-sm text-gray-300 mb-4">View historical price series, interactive candlestick charts, and market stats. Use the Fetch button to load data for the selected ticker.</p>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setView('chart')} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white font-medium">Open Chart</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Investment Simulator Card */}
+              <div className="p-6 bg-white/5 rounded-2xl border border-white/10 shadow-lg hover:shadow-xl transition">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-green-500 to-green-700 rounded-lg shadow-md">
+                    {/* simulator icon */}
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3v6h6v-6c0-1.657-1.343-3-3-3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7v6a2 2 0 01-2 2h-1" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v6a2 2 0 002 2h1" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold">Investment Simulator</h3>
+                    <p className="text-sm text-gray-300 mb-4">Estimate how a past investment would have performed — enter an amount and purchase date to see portfolio growth and charts.</p>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setView('invest')} className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md text-white font-medium">Open Simulator</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Options Pricing Card */}
+              <div className="p-6 bg-white/5 rounded-2xl border border-white/10 shadow-lg hover:shadow-xl transition">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 flex items-center justify-center bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg shadow-md">
+                    {/* options icon */}
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3v6h6v-6c0-1.657-1.343-3-3-3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 3h8v4H8z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold">Option Pricing</h3>
+                    <p className="text-sm text-gray-300 mb-4">Price European call and put options using Black–Scholes. See Greeks, time-to-maturity and payoff at expiry.</p>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setView('options')} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-md text-white font-medium">Open Option Pricing</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
