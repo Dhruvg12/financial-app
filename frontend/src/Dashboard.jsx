@@ -247,8 +247,25 @@ export default function Dashboard({ user, setUser }) {
         {view === 'hub' && (
           <div className="py-12">
             <div className="max-w-4xl mx-auto text-center mb-8">
-              <h2 className="text-3xl font-bold mb-2">Choose a tool</h2>
-              <p className="text-gray-300">Quickly open one of the tools below. Each card explains what the tool does and how to use it.</p>
+              <h2 className="text-4xl font-extrabold mb-2">Welcome to Investra</h2>
+              <p className="text-gray-300 mb-4">Explore charts, simulate past investments, or price options — pick a tool to get started.</p>
+
+              <div className="mt-6 flex flex-col md:flex-row items-stretch justify-center gap-4">
+                <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-6 py-6 bg-white/5 rounded-lg border border-white/8 text-sm text-center h-28">
+                  <strong className="block text-white text-lg">Quick research</strong>
+                  <span className="text-gray-300">Interactive charts & market stats</span>
+                </div>
+
+                <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-6 py-6 bg-white/5 rounded-lg border border-white/8 text-sm text-center h-28">
+                  <strong className="block text-white text-lg">Learn & backtest</strong>
+                  <span className="text-gray-300">Estimate how past investments would have performed</span>
+                </div>
+
+                <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-6 py-6 bg-white/5 rounded-lg border border-white/8 text-sm text-center h-28">
+                  <strong className="block text-white text-lg">Advanced modeling</strong>
+                  <span className="text-gray-300">Black–Scholes pricing, Greeks, payoff visualization</span>
+                </div>
+              </div>
             </div>
 
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
